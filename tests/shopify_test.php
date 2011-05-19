@@ -75,6 +75,7 @@ class ShopifyTest extends PHPUnit_Framework_TestCase {
             $this->api->product($product['id']);
             $this->fail();
         } catch(ShopifyException $e) {
+            $this->assertInstanceOf('ShopifyResponseException', $e);
             $this->assertEquals(404, $e->getCode());
         }
     }

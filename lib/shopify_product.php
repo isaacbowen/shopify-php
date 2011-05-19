@@ -3,7 +3,6 @@
 class ShopifyProduct extends ShopifyResource {
     
     public $variants = array();
-    protected $deleted = false;
     
     function __construct($api, $data = array(), $loaded = false) {
         parent::__construct($api, $data, $loaded);
@@ -13,28 +12,6 @@ class ShopifyProduct extends ShopifyResource {
                 $this->variants[] = new ShopifyProductVariant($api, $variant_data, true);
             }
         }
-    }
-    
-    function save() {
-        $params = array('product' => $this->newData);
-        
-        if(!empty($this['id'])) {
-            $data = $this->api->call('products/' . $this['id'], $params, 'put');
-            $this->load($data['product']);
-        } else {
-            $data = $this->api->call('products', $params, 'post');
-            $this->load($data['product']);
-        }
-        
-        return true;
-    }
-    
-    function delete() {
-        if(empty($this['id']) || $this->deleted) return false;
-        
-        $this->api->call('products/' . $this['id'], array(), 'delete');
-        $this->deleted = true;
-        return true;
     }
     
     static function product($api, $id) {
