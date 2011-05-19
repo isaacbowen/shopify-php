@@ -1,4 +1,4 @@
 <?php
 
-class ShopifyResponseException extends Exception {
+class ShopifyResponseException extends ShopifyException {
 }
