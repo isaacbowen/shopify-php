@@ -27,6 +27,27 @@ class ShopifyTest extends PHPUnit_Framework_TestCase {
         $this->assertArrayHasKey('domain', $shop['shop']);
         $this->assertEquals('stroman-huels-and-bartoletti1621.myshopify.com', $shop['shop']['domain']);
     }
+
+    function testShop() {
+        // load
+        $shop = $this->api->shop();
+        $this->assertInstanceOf('ShopifyShop', $shop);
+        $this->assertEquals('stroman-huels-and-bartoletti1621.myshopify.com', $shop['domain']);
+
+        // ensure that the resource_methods filter is working
+        try {
+            $shop->save();
+            $this->fail('Expecting ShopifyResourceException');
+        } catch(ShopifyResourceException $e) {
+            $this->assertInstanceOf('ShopifyResourceException', $e);
+        }
+        try {
+            $shop->delete();
+            $this->fail('Expecting ShopifyResourceException');
+        } catch(ShopifyResourceException $e) {
+            $this->assertInstanceOf('ShopifyResourceException', $e);
+        }
+    }
     
     function testProduct() {
         // initial count
