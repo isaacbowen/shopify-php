@@ -37,16 +37,16 @@ try {
         
         // load shop
         $shop = $api->shop();
-        echo '<h1>' . $shop->name . '</h1>';
+        echo '<h1>' . $shop['name'] . '</h1>';
         
         echo '<h2>' . $api->products_count() . ' Products</h2>';
         
         echo '<ul>';
         foreach($api->products() as $product) {
-            echo '<li>' . $product['id'] . ': ' . $product->title;
+            echo '<li>' . $product['id'] . ': ' . $product['title'];
             echo '<ul>';
             foreach($product->variants as $variant) {
-                echo '<li>$' . $variant->price . ': ' . $variant->title . '</li>';
+                echo '<li>$' . $variant['price'] . ': ' . $variant['title'] . '</li>';
             }
             echo '</ul></li>';
         }
