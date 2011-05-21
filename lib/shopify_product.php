@@ -3,6 +3,7 @@
 class ShopifyProduct extends ShopifyResource {
     
     public $variants = array();
+    protected $resource_methods = array('save', 'delete');
     
     function __construct($api, $data = array(), $loaded = false) {
         parent::__construct($api, $data, $loaded);

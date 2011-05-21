@@ -14,8 +14,8 @@ abstract class ShopifyResource implements ArrayAccess {
     // state flags
     protected $deleted = false;
 
-    // 'shop' is singular, 'product' is not
-    protected static $resource_singular = false;
+    // viable methods
+    protected $resource_methods = array();
     
     function __construct(Shopify $api, array $data = array(), $loaded = false) {
         $this->api = $api;
@@ -43,11 +43,19 @@ abstract class ShopifyResource implements ArrayAccess {
         return !empty($this['id']) && empty($this->newData);
     }
 
+
     // read/write from api
 
-    function save() {
-        if(self::$resource_singular) throw new ShopifyException('save() not applicable for singular ' . $this->type());
+    function __call($method, $args) {
+        $this_reflection = new ReflectionObject($this);
+        if(in_array($method, $this->resource_methods) && $this_reflection->hasMethod("resource_$method")) {
+            return call_user_func_array(array($this, "resource_$method"), $args);
+        } else {
+            throw new ShopifyResourceException("Method $method is unsupported for " . get_class($this));
+        }
+    }
 
+    protected function resource_save() {
         $params = array($this->type() => $this->newData);
 
         if(!empty($this['id'])) {
@@ -61,9 +69,7 @@ abstract class ShopifyResource implements ArrayAccess {
         return true;
     }
 
-    function delete() {
-        if(self::$resource_singular) throw new ShopifyException('delete() not applicable for singular ' . $this->type());
-
+    protected function resource_delete() {
         if(empty($this['id']) || $this->deleted) return false;
 
         $this->api->call($this->type(true) . '/' . $this['id'], array(), 'delete');
