@@ -88,14 +88,6 @@ abstract class ShopifyResource implements ArrayAccess {
 
     // data retrieval
     
-    function __get($key) {
-        return $this[$key];
-    }
-    
-    function __set($key, $val) {
-        $this[$key] = $val;
-    }
-    
     function offsetExists($offset) {
         return array_key_exists($offset, $this->data) || array_key_exists($offset, $this->newData);
     }
