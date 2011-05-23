@@ -55,6 +55,33 @@ abstract class ShopifyResource implements ArrayAccess {
         }
     }
 
+    static function __callStatic($method, $args) {
+        $class = get_called_class();
+        $type = self::class_to_type($class);
+
+        // first arg must always be an instance of Shopify
+        if(!($args[0] instanceof Shopify)) {
+            throw new ShopifyResourceException("$class::$method requires an instance of Shopify as the first argument");
+        }
+        $api = $args[0];
+
+        if($method == $type) {
+            // singular get (e.g. ShopifyProduct::product(1234))
+            $data = $api->call($type . 's/' . $args[1]);
+            return new $class($api, $data[$type], true);
+        } elseif($method == $type . 's') {
+            // plural get (e.g. ShopifyProduct::products(array('page' => 2))
+            $data = $api->call($type . 's', $args[1]);
+            $objects = array();
+            foreach($data[$type . 's'] as $object_data) {
+                $objects[] = new $class($api, $object_data, true);
+            }
+            return $objects;
+        } else {
+            throw new ShopifyResourceException("Unsupported method $class::$method");
+        }
+    }
+
     protected function resource_save() {
         $params = array($this->type() => $this->newData);
 
@@ -81,8 +108,13 @@ abstract class ShopifyResource implements ArrayAccess {
     // misc helpers
 
     // returns lowercase, underscored resource type for use with REST requests. uses simple pluralization.
+    protected static function class_to_type($class, $plural = false) {
+        return strtolower(preg_replace('/(?<=[a-z])(?=[A-Z])/', '_', preg_replace('/^Shopify(.*)$/', '$1', $class))) . ($plural ? 's' : '');
+    }
+    
+    // object implementation for class_to_type
     function type($plural = false) {
-        return strtolower(preg_replace('/(?<=[a-z])(?=[A-Z])/', '_', preg_replace('/^Shopify(.*)$/', '$1', get_class($this)))) . ($plural ? 's' : '');
+        return self::class_to_type(get_class($this), $plural);
     }
 
 

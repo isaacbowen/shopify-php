@@ -25,9 +25,6 @@ class Shopify {
         'throttle_mode' => 'exception', // 'sleep' else 'exception'
     );
     
-    // stores a reflection for each shopify resource class
-    private static $resource_reflections = array();
-    
     // curl resources
     private $curl_handle = null;
     private $curl_response_headers = array();
@@ -91,30 +88,9 @@ class Shopify {
             }
         }
         
-        // load class reflection
-        if(empty(self::$resource_reflections[$class_name])) {
-            self::$resource_reflections[$class_name] = new ReflectionClass($class_name);
-        }
-        
-        // find method name
-        $method_name = $name;
-        if(!self::$resource_reflections[$class_name]->hasMethod($method_name)) {
-            $method_name_parts = explode('_', $method_name);
-            array_shift($method_name_parts);
-            $method_name = implode('_', $method_name_parts);
-            if(!self::$resource_reflections[$class_name]->hasMethod($method_name)) {
-                throw new ShopifyException("$class_name method $name does not exist");
-            }
-        }
-        
         // invoke
-        $method = self::$resource_reflections[$class_name]->getMethod($method_name);
-        if($method->isStatic()) {
-            array_unshift($args, $this);
-            return call_user_func_array(array($class_name, $method_name), $args);
-        } else {
-            throw new ShopifyException('Unhandled: non-static method');
-        }
+        array_unshift($args, $this);
+        return call_user_func_array(array($class_name, $name), $args);
     }
     
     // accessor for child resources

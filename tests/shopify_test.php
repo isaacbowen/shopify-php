@@ -122,5 +122,19 @@ class ShopifyTest extends PHPUnit_Framework_TestCase {
         $this->assertTrue($variant->save() && $variant->saved());
         $this->assertEquals($tmp_title, $variant['option1']);
     }
+
+    function testMetafield() {
+        $test_value = md5(time());
+
+        // test shop metafield
+        $metafield = new ShopifyMetafield(
+            $this->api,
+            array('namespace' => 'apitest', 'key' => 'asdf', 'value' => $test_value, 'value_type' => 'string')
+        );
+        $this->assertTrue($metafield->save());
+        $metafield_test = $this->api->metafield($metafield['id']);
+        $this->assertEquals($test_value, $metafield_test['value']);
+        $this->assertTrue($metafield_test->delete());
+    }
     
 }
