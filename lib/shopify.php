@@ -83,7 +83,7 @@ class Shopify {
     // sent off requests to the appropriate resource
     function __call($name, $args) {
         // figure out which class we're dealing with
-        $class_name = 'Shopify' . ucwords(current(explode('_', $name)));
+        $class_name = 'Shopify' . str_replace(' ', '', ucwords(str_replace('_', ' ', $name)));
         if(!class_exists($class_name)) {
             $class_name = rtrim($class_name, 's');
             if(!class_exists($class_name)) {
@@ -117,6 +117,20 @@ class Shopify {
         }
     }
     
+    // accessor for child resources
+    
+    function __get($name) {
+        $class = 'Shopify' . str_replace(' ', '', ucwords(str_replace('_', ' ', $name)));
+        if(!class_exists($class)) {
+            $class = preg_replace('/s$/', '', $class);
+            if(!class_exists($class)) {
+                return null;
+            }
+        }
+        
+        return new ShopifyResourceHandle($this, $class);
+    }
+    
     // perform an api call
     function call($path, $params = array(), $method = 'get') {
         // clean path
@@ -129,15 +143,16 @@ class Shopify {
             $mode = $mode_matches[2];
         }
         
-        // set method
+        // prep method
         $method = strtoupper($method);
         
-        // set url/method
-        curl_setopt($this->curl_handle, CURLOPT_URL, ($this->ssl ? 'http://' : 'https://') . "{$this->auth_user}:{$this->auth_password}@{$this->shop}{$this->prefix}/$path.$mode?" . http_build_query($params));
-        curl_setopt($this->curl_handle, CURLOPT_CUSTOMREQUEST, $method);
-        
-        // set post data, if needed
-        if($method <> 'GET') {
+        // prep request data
+        $url = ($this->ssl ? 'http://' : 'https://') . "{$this->auth_user}:{$this->auth_password}@{$this->shop}{$this->prefix}/$path.$mode";
+        if($method == 'GET') {
+            if(!empty($params)) {
+                $url .= '?' . http_build_query($params);
+            }
+        } else {
             switch($mode) {
                 case 'json':
                     $post_data = json_encode($params);
@@ -151,6 +166,11 @@ class Shopify {
             
             curl_setopt($this->curl_handle, CURLOPT_POSTFIELDS, $post_data);
         }
+
+        // set request data
+        curl_setopt($this->curl_handle, CURLOPT_URL, $url);
+        curl_setopt($this->curl_handle, CURLOPT_CUSTOMREQUEST, $method);
+        curl_setopt($this->curl_handle, CURLOPT_HTTPHEADER, array('Content-type: ' . self::$modes[$mode]));
         
         // go time
         $this->curl_response_content = curl_exec($this->curl_handle);
@@ -176,23 +196,21 @@ class Shopify {
             }
         }
         
-        // evaluate response
-        if(strstr($this->curl_info('content_type'), self::$modes[$mode]) === false) {
-            throw new ShopifyResponseException('Was expecting ' . self::$modes[$mode] . '; API returned ' . $this->curl_info('content_type'));
+        // process response
+        $response = null;
+        if(strstr($this->curl_info('content_type'), self::$modes[$mode]) !== false) {
+            switch($mode) {
+                case 'json':
+                    $response = json_decode($this->curl_content(), true);
+                    break;
+                case 'xml':
+                    $response = simplexml_load_string($this->curl_content());
+                    break;
+                default:
+                    throw new ShopifyResponseException("Unhandled mode: $mode");
+            }
         }
-        
-        // process result
-        switch($mode) {
-            case 'json':
-                $response = json_decode($this->curl_content(), true);
-                break;
-            case 'xml':
-                $response = simplexml_load_string($this->curl_content());
-                break;
-            default:
-                throw new ShopifyResponseException("Unhandled mode: $mode");
-        }
-        
+            
         if(floor($this->curl_info('http_code')/100) == 2) {
             // success
             return $response;
@@ -200,7 +218,7 @@ class Shopify {
             // failure
             
             // prepare error message
-            $message = 'Shopify returned status ' . $this->curl_info('http_code');
+            $message = 'Shopify returned status ' . $this->curl_info('http_code') . " for $method /" . end(explode('/', $this->curl_info('url'), 4));
             if(!empty($response)) {
                 switch($mode) {
                     case 'json':

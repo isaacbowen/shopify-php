@@ -51,7 +51,7 @@ class ShopifyTest extends PHPUnit_Framework_TestCase {
     
     function testProduct() {
         // initial count
-        $count = $this->api->products_count();
+        $count = $this->api->products->count();
         $this->assertInternalType('integer', $count);
         
         // setup
@@ -68,7 +68,7 @@ class ShopifyTest extends PHPUnit_Framework_TestCase {
         // save
         $this->assertTrue($product->save());
         $this->assertTrue($product->saved());
-        $this->assertEquals($count+1, $this->api->products_count());
+        $this->assertEquals($count+1, $this->api->products->count());
         $this->assertNotEmpty($product['id']);
         
         
@@ -83,13 +83,13 @@ class ShopifyTest extends PHPUnit_Framework_TestCase {
         $product = $this->api->product($product_id);
         $this->assertInstanceOf('ShopifyProduct', $product);
         $this->assertEquals(1, count($product->variants));
-        $this->assertInstanceOf('ShopifyProductVariant', $product->variants[0]);
+        $this->assertInstanceOf('ShopifyVariant', $product->variants[0]);
         $this->assertNotEmpty($product->variants[0]['id']);
         
         // delete
         $this->assertTrue($product->delete());
         $this->assertFalse($product->delete());
-        $this->assertEquals($count, $this->api->products_count());
+        $this->assertEquals($count, $this->api->products->count());
         
         // test 404 response after deleted
         try {
@@ -99,6 +99,28 @@ class ShopifyTest extends PHPUnit_Framework_TestCase {
             $this->assertInstanceOf('ShopifyResponseException', $e);
             $this->assertEquals(404, $e->getCode());
         }
+    }
+
+    /**
+     * @depends testProduct
+     */
+    function testVariant() {
+        // load a variant by way of a product
+        $products = $this->api->products(array('limit' => 1));
+        $this->assertGreaterThanOrEqual(1, count($products));
+
+        // load a variant directly
+        $variant = $this->api->variant($products[0]->variants[0]['id']);
+        $this->assertEquals($products[0]->variants[0]['id'], $variant['id']);
+
+        // test save operation
+        $tmp_title = $variant['option1'];
+        $variant['option1'] = md5($tmp_title);
+        $this->assertTrue($variant->save() && $variant->saved());
+        $this->assertEquals(md5($tmp_title), $variant['option1']);
+        $variant['option1'] = $tmp_title;
+        $this->assertTrue($variant->save() && $variant->saved());
+        $this->assertEquals($tmp_title, $variant['option1']);
     }
     
 }

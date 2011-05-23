@@ -76,7 +76,7 @@ abstract class ShopifyResource implements ArrayAccess {
         $this->deleted = true;
         return true;
     }
-
+    
 
     // misc helpers
 
